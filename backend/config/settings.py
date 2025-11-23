@@ -12,13 +12,11 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 # REPLIT Configuration
 REPLIT_DOMAIN = os.getenv('REPLIT_DEV_DOMAIN', os.getenv('REPLIT_DOMAINS', ''))
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '*']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 if REPLIT_DOMAIN:
     ALLOWED_HOSTS.append(REPLIT_DOMAIN)
-allowed_hosts_env = os.getenv('ALLOWED_HOSTS', '')
-if allowed_hosts_env:
-    ALLOWED_HOSTS.extend([h.strip() for h in allowed_hosts_env.split(',') if h.strip()])
-ALLOWED_HOSTS = list(set([h.strip() for h in ALLOWED_HOSTS if h.strip()]))
+ALLOWED_HOSTS.extend(os.getenv('ALLOWED_HOSTS', '').split(','))
+ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS if h.strip()]
 
 DEV_MODE = not (BASE_DIR / 'frontend' / 'build' / 'index.html').exists()
 
@@ -111,14 +109,12 @@ REST_FRAMEWORK = {
     ],
 }
 
-CORS_ALLOWED_ORIGINS = ['http://localhost:5000', 'http://localhost:3000', 'http://0.0.0.0:5000', 'http://127.0.0.1:5000', 'https://chemicalequipmentvisualizer.vercel.app']
+CORS_ALLOWED_ORIGINS = ['http://localhost:5000', 'http://localhost:3000', 'http://0.0.0.0:5000', 'http://127.0.0.1:5000']
 if REPLIT_DOMAIN:
     CORS_ALLOWED_ORIGINS.extend([f'https://{REPLIT_DOMAIN}', f'http://{REPLIT_DOMAIN}'])
-cors_env = os.getenv('CORS_ALLOWED_ORIGINS', '')
-if cors_env:
-    CORS_ALLOWED_ORIGINS.extend([
-        origin.strip().rstrip('/') for origin in cors_env.split(',') if origin.strip()
-    ])
+CORS_ALLOWED_ORIGINS.extend([
+    origin.strip() for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if origin.strip()
+])
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -134,14 +130,12 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-CSRF_TRUSTED_ORIGINS = ['http://localhost:5000', 'http://localhost:3000', 'http://0.0.0.0:5000', 'http://127.0.0.1:5000', 'https://chemicalequipmentvisualizer.vercel.app']
+CSRF_TRUSTED_ORIGINS = ['http://localhost:5000', 'http://localhost:3000', 'http://0.0.0.0:5000', 'http://127.0.0.1:5000']
 if REPLIT_DOMAIN:
     CSRF_TRUSTED_ORIGINS.extend([f'https://{REPLIT_DOMAIN}', f'http://{REPLIT_DOMAIN}'])
-csrf_env = os.getenv('CSRF_TRUSTED_ORIGINS', '')
-if csrf_env:
-    CSRF_TRUSTED_ORIGINS.extend([
-        origin.strip().rstrip('/') for origin in csrf_env.split(',') if origin.strip()
-    ])
+CSRF_TRUSTED_ORIGINS.extend([
+    origin.strip() for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()
+])
 
 # MODIFIED: Added these settings to allow Vercel to maintain login session
 # For development (HTTP), disable secure flag. Production will override this.
@@ -152,16 +146,14 @@ CSRF_COOKIE_SECURE = DEBUG == False  # Only secure in production
 SESSION_COOKIE_HTTPONLY = True
 
 
-# Use console backend in production (emails print to console)
-# In production with real email: set EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend' if not DEBUG else 'django.core.mail.backends.console.EmailBackend')
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
 
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'test@example.com')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'test-password')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@chemicalequipmentvisualizer.com')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@example.com')
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', 30))
 
 GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID', '')
