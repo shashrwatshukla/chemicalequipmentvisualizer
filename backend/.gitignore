@@ -1,0 +1,42 @@
+# Backend-specific gitignore
+
+# Virtual Environment
+venv_clean/
+venv/
+.venv/
+env/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pyc
+.pytest_cache/
+
+# Media uploads
+media/
+media/uploads/
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

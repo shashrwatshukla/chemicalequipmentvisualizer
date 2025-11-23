@@ -1,0 +1,6 @@
+PyQt5>=5.15.9
+PyQt5-sip>=12.12.1
+requests>=2.31.0
+matplotlib>=3.7.1
+pandas>=2.0.3
+python-dotenv>=1.0.0
