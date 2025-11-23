@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.http import HttpResponsej
+from django.http import HttpResponse
 from django.db.models import Count, Max, Min, Avg, StdDev, Variance
 from django.core.mail import send_mail
 from django.conf import settings
@@ -61,23 +61,20 @@ def register_view(request):
         verification_code = get_random_string(length=6, allowed_chars='0123456789')
         EmailVerification.objects.create(user=user, code=verification_code)
         
-        email_sent = True
         try:
             subject = 'Verify Your Email - Chemical Equipment Visualizer'
             message = f'''Hello {username},\n\nYour verification code is: {verification_code}\n\nThis code expires in {settings.EMAIL_VERIFICATION_TIMEOUT_MINUTES} minutes.\n\nBest regards,\nChemical Equipment Visualizer Team'''
             send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email], fail_silently=False)
+            email_sent = True
         except Exception as e:
-            print(f"⚠️ Email sending failed (non-critical): {str(e)}")
             email_sent = False
         
-        print(f"✅ User {username} registered successfully. Email sent: {email_sent}. Verification code: {verification_code}")
         return Response({
             'message': 'Registration successful! Please check your email for verification code.',
             'verification_required': True,
             'email_sent': email_sent
         }, status=status.HTTP_201_CREATED)
     except Exception as e:
-        print(f"❌ Registration error: {str(e)}")
         return Response({'error': f'Registration failed: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -357,84 +354,59 @@ def current_user(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def upload_dataset(request):
-    try:
-        if 'file' not in request.FILES:
-            print("❌ No file in request")
-            return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        csv_file = request.FILES['file']
-        print(f"📄 File received: {csv_file.name}, Size: {csv_file.size} bytes")
-        
-        if not csv_file.name.endswith('.csv'):
-            print(f"❌ Invalid file format: {csv_file.name}")
-            return Response({'error': 'File must be a CSV'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        print(f"📄 Processing CSV file: {csv_file.name}")
-        success, result = process_csv_file(csv_file)
-        
-        if not success:
-            print(f"❌ CSV processing failed: {result}")
-            return Response({'error': result}, status=status.HTTP_400_BAD_REQUEST)
-        
-        print(f"✅ CSV processed successfully. Equipment count: {result['total_equipment']}")
-        numeric_cols = result['column_summary']['numeric_columns']
-        
-        try:
-            print(f"💾 Creating dataset record...")
-            dataset = Dataset.objects.create(
-                name=csv_file.name,
-                uploaded_by=request.user,
-                file_path=csv_file,
-                total_equipment=result['total_equipment'],
-                avg_flowrate=0,
-                avg_pressure=0,
-                avg_temperature=0
-            )
-            print(f"✅ Dataset record created: ID={dataset.id}")
-        except Exception as db_error:
-            print(f"❌ Database error creating dataset: {str(db_error)}")
-            raise
-        
-        try:
-            print(f"💾 Saving equipment data...")
-            save_equipment_data(dataset, result['equipment_list'], result['column_summary'])
-            print(f"✅ Equipment data saved successfully")
-        except Exception as eq_error:
-            print(f"❌ Error saving equipment: {str(eq_error)}")
-            dataset.delete()
-            raise
-        
-        user_datasets = Dataset.objects.filter(uploaded_by=request.user).order_by('-uploaded_at')
-        if user_datasets.count() > 5:
-            datasets_to_delete = user_datasets[5:]
-            for ds in datasets_to_delete:
-                ds.delete()
-        
-        dataset.refresh_from_db()
-        serializer = DatasetSerializer(dataset)
-        
-        column_mapping = {
-            'param1': numeric_cols[0] if len(numeric_cols) > 0 else 'Parameter 1',
-            'param2': numeric_cols[1] if len(numeric_cols) > 1 else 'Parameter 2',
-            'param3': numeric_cols[2] if len(numeric_cols) > 2 else 'Parameter 3',
-        }
-        
-        response_data = {
-            'message': 'Dataset uploaded successfully',
-            'dataset': serializer.data,
-            'column_summary': result['column_summary'],
-            'column_mapping': column_mapping,
-            'averages': result['averages'],
-            'ranges': result['ranges']
-        }
-        
-        print(f"✅ File upload complete: {csv_file.name}")
-        return Response(response_data, status=status.HTTP_201_CREATED)
-    except Exception as e:
-        print(f"❌ File upload error: {str(e)}")
-        import traceback
-        print(traceback.format_exc())
-        return Response({'error': f'Upload failed: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+    if 'file' not in request.FILES:
+        return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    csv_file = request.FILES['file']
+    
+    if not csv_file.name.endswith('.csv'):
+        return Response({'error': 'File must be a CSV'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    success, result = process_csv_file(csv_file)
+    
+    if not success:
+        return Response({'error': result}, status=status.HTTP_400_BAD_REQUEST)
+    
+    numeric_cols = result['column_summary']['numeric_columns']
+    
+    dataset = Dataset.objects.create(
+        name=csv_file.name,
+        uploaded_by=request.user,
+        file_path=csv_file,
+        total_equipment=result['total_equipment'],
+        avg_flowrate=0,
+        avg_pressure=0,
+        avg_temperature=0
+    )
+    
+    save_equipment_data(dataset, result['equipment_list'], result['column_summary'])
+    
+    user_datasets = Dataset.objects.filter(uploaded_by=request.user).order_by('-uploaded_at')
+    if user_datasets.count() > 5:
+        datasets_to_delete = user_datasets[5:]
+        for ds in datasets_to_delete:
+            ds.delete()
+    
+    dataset.refresh_from_db()
+    
+    serializer = DatasetSerializer(dataset)
+    
+    column_mapping = {
+        'param1': numeric_cols[0] if len(numeric_cols) > 0 else 'Parameter 1',
+        'param2': numeric_cols[1] if len(numeric_cols) > 1 else 'Parameter 2',
+        'param3': numeric_cols[2] if len(numeric_cols) > 2 else 'Parameter 3',
+    }
+    
+    response_data = {
+        'message': 'Dataset uploaded successfully',
+        'dataset': serializer.data,
+        'column_summary': result['column_summary'],
+        'column_mapping': column_mapping,
+        'averages': result['averages'],
+        'ranges': result['ranges']
+    }
+    
+    return Response(response_data, status=status.HTTP_201_CREATED)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
